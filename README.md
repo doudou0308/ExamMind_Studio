@@ -1,4 +1,4 @@
-# ExamMind · 知衡
+# ExamMind Studio · 知衡
 
 **AI 题库与智能考试平台 | Spring Boot + Vue 3 + DeepSeek**
 
@@ -83,8 +83,8 @@ AI 功能需要自行配置 DeepSeek 密钥并承担相应 API 费用。不配�
 - MySQL 8.0；使用有建库、建表和读写权限的开发数据库账号。
 
 ```sh
-git clone https://github.com/doudou0308/ExamMind.git
-cd ExamMind
+git clone https://github.com/doudou0308/ExamMind_Studio.git
+cd ExamMind_Studio
 ```
 
 ### 2. 配置并启动后端
