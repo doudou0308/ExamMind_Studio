@@ -1,0 +1,51 @@
+# Publish an explicit set of source and documentation directories only.
+/*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/SECURITY.md
+!/exam_web/
+!/scripts/
+!/.github/
+!/docs/
+
+# Dependencies and generated output
+**/node_modules/
+**/target/
+**/dist/
+**/out/
+*.class
+*.jar
+*.war
+*.log
+*.tsbuildinfo
+__pycache__/
+
+# IDE state and machine configuration
+**/.idea/
+**/.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+.env
+.env.*
+!.env.example
+**/application-local*.yml
+**/application-local*.yaml
+**/application-local*.properties
+
+# Original submissions, documents, exports and database dumps stay local.
+*.zip
+*.7z
+*.rar
+*.docx
+*.pdf
+*.xlsx
+*.csv
+*.dump
+*.bak
+*.pem
+*.key
