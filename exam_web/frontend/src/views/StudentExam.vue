@@ -33,8 +33,17 @@
 
       <!-- 仪表盘（非答题状态） -->
       <template v-if="!examData">
+        <div v-if="Object.keys(dashboardErrors).length" class="card" aria-live="polite">
+          <div v-for="(label, panel) in dashboardErrors" :key="panel">
+            {{ label }}加载失败
+            <button type="button" class="btn-review" @click="dashboardLoaders[panel]()">
+              重试{{ label }}
+            </button>
+          </div>
+        </div>
+
         <!-- 模块1：学习统计卡片 -->
-        <div class="stats-row">
+        <div v-if="!dashboardErrors.stats" class="stats-row">
           <div class="stat-card">
             <div class="stat-icon exams-icon">&#9998;</div>
             <div class="stat-num">{{ stats.examCount }}</div>
@@ -73,7 +82,7 @@
               </tr>
             </tbody>
           </table>
-          <p v-else class="card-empty">暂无新考试，请等待管理员下发</p>
+          <p v-else-if="!dashboardErrors.exams" class="card-empty">暂无新考试，请等待管理员下发</p>
         </div>
 
         <!-- 模块2b：已完成考试 -->
@@ -91,7 +100,7 @@
               </tr>
             </tbody>
           </table>
-          <p v-else class="card-empty">暂无已完成的考试</p>
+          <p v-else-if="!dashboardErrors.exams" class="card-empty">暂无已完成的考试</p>
         </div>
 
         <!-- 模块3：错题本 -->
@@ -156,7 +165,7 @@
               </template>
             </tbody>
           </table>
-          <p v-else class="card-empty">恭喜你，暂时没有错题</p>
+          <p v-else-if="!dashboardErrors.wrong" class="card-empty">恭喜你，暂时没有错题</p>
         </div>
 
         <!-- 错题详情弹窗 -->
@@ -555,21 +564,47 @@ function barHeight(s: number) {
   return Math.max(10, (s / max) * 140) + 'px'
 }
 
-/** 并行加载仪表盘所有数据 */
-async function loadAll() {
-  const [exRes, sRes, wRes, hRes] = await Promise.all([
-    getStudentExams(), getStudentStats(), getWrongQuestions(), getScoreHistory()
-  ])
-  if (exRes.ok) exams.value = exRes.data
-  if (sRes.ok) stats.value = sRes.data
-  if (wRes.ok) wrongList.value = wRes.data
-  if (hRes.ok) scoreList.value = hRes.data
+const dashboardLabels = { exams: '考试列表', stats: '学习统计', wrong: '错题本', history: '成绩历史' }
+type DashboardPanel = keyof typeof dashboardLabels
+const dashboardErrors = ref<Partial<Record<DashboardPanel, string>>>({})
+const dashboardRevisions: Record<DashboardPanel, number> = { exams: 0, stats: 0, wrong: 0, history: 0 }
+
+async function loadDashboardPanel<T>(
+  panel: DashboardPanel,
+  request: () => Promise<{ ok: boolean; data: T }>,
+  apply: (data: T) => void,
+) {
+  const revision = ++dashboardRevisions[panel]
+  try {
+    const result = await request()
+    if (revision !== dashboardRevisions[panel]) return
+    if (!result.ok) {
+      dashboardErrors.value[panel] = dashboardLabels[panel]
+      return
+    }
+    apply(result.data)
+    delete dashboardErrors.value[panel]
+  } catch {
+    if (revision === dashboardRevisions[panel]) {
+      dashboardErrors.value[panel] = dashboardLabels[panel]
+    }
+  }
 }
 
-/** 按考试筛选错题 */
-async function loadWrongQuestions() {
-  const r = await getWrongQuestions(wrongFilter.value ? Number(wrongFilter.value) : undefined)
-  if (r.ok) wrongList.value = r.data
+function loadWrongQuestions() {
+  const examId = wrongFilter.value ? Number(wrongFilter.value) : undefined
+  return loadDashboardPanel<WrongItem[]>('wrong', () => getWrongQuestions(examId), data => { wrongList.value = data })
+}
+
+const dashboardLoaders = {
+  exams: () => loadDashboardPanel<ExamItem[]>('exams', getStudentExams, data => { exams.value = data }),
+  stats: () => loadDashboardPanel<typeof stats.value>('stats', getStudentStats, data => { stats.value = data }),
+  wrong: loadWrongQuestions,
+  history: () => loadDashboardPanel<typeof scoreList.value>('history', getScoreHistory, data => { scoreList.value = data }),
+}
+
+function loadAll() {
+  return Promise.all(Object.values(dashboardLoaders).map(load => load()))
 }
 
 async function analyzeOne(qid: number) {
@@ -988,3 +1023,4 @@ th { background: #fafafa; font-weight: 600; color: #555 }
 .detail-label { font-size: 12px; color: #888; margin-bottom: 4px }
 .detail-text { font-size: 14px; color: #333; line-height: 1.6 }
 </style>
+
