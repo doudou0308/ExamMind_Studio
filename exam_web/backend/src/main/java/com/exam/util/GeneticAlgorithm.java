@@ -48,6 +48,9 @@ public class GeneticAlgorithm {
      */
     public static List<Integer> evolve(List<Question> pool, int targetSize,
                                     double targetAvgDifficulty, Set<String> targetCategories) {
+        if (targetSize < 0) throw new IllegalArgumentException("题目数量不能为负数");
+        if (targetSize == 0 || pool.isEmpty()) return new ArrayList<>();
+
         // 题库不够大 → 直接返回全部题目，不跑算法
         if (pool.size() < targetSize) 
             return pool.stream()// 提取所有题目的ID
@@ -184,8 +187,15 @@ public class GeneticAlgorithm {
      * @param pool       题库
      */
     private static void mutate(List<Integer> individual, List<Question> pool) {
+        // 只从尚未入选的题目中选择，避免变异产生重复题目
+        Set<Integer> selected = new HashSet<>(individual);
+        List<Question> available = pool.stream()
+                .filter(q -> !selected.contains(q.getId()))
+                .collect(Collectors.toList());
+        if (available.isEmpty()) return;
+
         int idx = rand.nextInt(individual.size());
-        Question newQ = pool.get(rand.nextInt(pool.size()));
+        Question newQ = available.get(rand.nextInt(available.size()));
         individual.set(idx, newQ.getId());
     }
 
