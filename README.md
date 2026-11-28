@@ -1,4 +1,4 @@
-# ExamMind Studio · 知衡
+# ExamMind Studio
 
 **AI 题库与智能考试平台 | Spring Boot + Vue 3 + DeepSeek**
 
